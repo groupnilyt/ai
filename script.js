@@ -1,37 +1,45 @@
-const form = document.getElementById("chat-form");
-const input = document.getElementById("user-input");
-const chatLog = document.getElementById("chat-log");
+const apiKey = "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"; // Replace with your real key
 
-form.addEventListener("submit", (e) => {
-  e.preventDefault();
-  const userMessage = input.value.trim();
-  if (!userMessage) return;
+async function sendMessage() {
+  const input = document.getElementById("user-input");
+  const message = input.value.trim();
+  if (!message) return;
 
-  addMessage("user", userMessage);
+  appendMessage("You", message, "user");
   input.value = "";
 
-  // Simulate AI response with a delay
-  setTimeout(() => {
-    const botReply = generateBotReply(userMessage);
-    addMessage("bot", botReply);
-  }, 600);
-});
+  appendMessage("Bot", "Typing...", "bot");
 
-function addMessage(sender, text) {
-  const msg = document.createElement("div");
-  msg.className = `message ${sender}`;
-  msg.textContent = text;
-  chatLog.appendChild(msg);
-  chatLog.scrollTop = chatLog.scrollHeight;
+  const chatBox = document.getElementById("chat-box");
+
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        "Authorization": `Bearer ${apiKey}`,
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [{ role: "user", content: message }]
+      })
+    });
+
+    const data = await response.json();
+    chatBox.lastChild.remove(); // remove "Typing..."
+    appendMessage("Bot", data.choices[0].message.content, "bot");
+  } catch (error) {
+    chatBox.lastChild.remove();
+    appendMessage("Bot", "Something went wrong!", "bot");
+    console.error(error);
+  }
 }
 
-function generateBotReply(userInput) {
-  // Simple rule-based response for demonstration
-  if (userInput.toLowerCase().includes("hello")) {
-    return "Hi there! How can I help you?";
-  } else if (userInput.toLowerCase().includes("your name")) {
-    return "I'm a ChatGPT-like AI created by GroupNilYT with HTML, CSS, and JS!";
-  } else {
-    return "I'm just a simple bot, but I'm happy to chat!";
-  }
+function appendMessage(sender, text, className) {
+  const chatBox = document.getElementById("chat-box");
+  const messageDiv = document.createElement("div");
+  messageDiv.className = `message ${className}`;
+  messageDiv.innerHTML = `<strong>${sender}:</strong> ${text}`;
+  chatBox.appendChild(messageDiv);
+  chatBox.scrollTop = chatBox.scrollHeight;
 }
